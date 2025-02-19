@@ -125,22 +125,7 @@ if __name__ == "__main__":
     tokenized_dict = pickle.loads(decrypted_data)
 
     print("Decryption successful! Loaded tokenized data.")
-    
-    # load dataset
-    """data = pd.read_csv(args.data_path)
-    if "dep" in args.expt_name:
-        df = data[['user_id', 'dep_text', 'phq_score']]
-        df = df.rename(columns={'dep_text': 'input_text', 'phq_score': 'target_value'})
-    elif "anx" in args.expt_name:
-        df = data[['user_id', 'anx_text', 'gad_score']]
-        df = df.rename(columns={'anx_text': 'input_text', 'gad_score': 'target_value'})
-    else:
-        raise ValueError("Experiments supported are anx and dep")    
 
-    if args.demo:
-        df = df.head(5)"""
-
-    #user_ids, input_texts, target_values = df.iloc[:, 0].tolist(), df.iloc[:, 1].tolist(), df.iloc[:, 2].tolist()
     video_ids, decrypted_token_ids = list(tokenized_dict.keys()), list(tokenized_dict.values())
     logging.info("Loaded {} rows of data for Inference.".format(len(video_ids)))
     
