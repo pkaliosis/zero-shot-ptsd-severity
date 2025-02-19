@@ -1,10 +1,4 @@
 templates={
-    "demo": """Is this person depressed based on the following text they wrote? Estimate their depression severity on a scale of 0 to 27, where 0 implies no signs of depression and 27 signifies severe depression.
-            Text: {text}""", #Demo template to debug runs
-
-
-
-
     "ptsd_w-reasoning_w-subscales_wo-questions":"""Your task is to conduct an in-depth analysis of a provided transcript, with the goal of assessing the severity of PTSD symptoms based on its 4 subscales. The text you will analyze is the transcription of the patient’s self-recorded answers to a set of 15 questions, which were designed to assess various aspects of psychological well-being, including PTSD-related symptoms. 
 Using the content of these transcriptions, you will predict a severity score for the following four PTSD subscales:
 Re-experiencing: Intrusive thoughts, flashbacks, nightmares, or distress when reminded of the trauma.
