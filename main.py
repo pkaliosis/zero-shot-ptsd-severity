@@ -41,8 +41,8 @@ def initialize_encryption():
 if __name__ == "__main__":
     args = parse_api_run_args()
     
-    if args.expt_name not in templates:
-        raise ValueError("Experiment name {} not found in templates.\n Choices: {}".format(args.expt_name, list(templates.keys())))
+    """if args.expt_name not in templates:
+        raise ValueError("Experiment name {} not found in templates.\n Choices: {}".format(args.expt_name, list(templates.keys())))"""
             
     run_folder_path = args.save_folder_path
     # prompts_dir = os.path.join(run_folder_path, "expts/prompts")
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     logging.info("OpenAI Communicator initialized")
     
     # Load instruction
-    instruction = templates["ptsd_w-reasoning_wo-subscales_wo-questions"]
+    #instruction = templates["ptsd_wo-reasoning_w-subscales_wo-questions"]
 
     # Load the encrypted file
     with open("tokenized_data_encrypted.pkl", "rb") as f:
@@ -141,6 +141,9 @@ if __name__ == "__main__":
         if (len(input_text.split(" ")) < 150) or (len(input_text.split(" ")) > 3000):
             print("Skipping due to not enough words...")
             continue
+        
+        phase = str(video_id.split("_")[-1])
+        instruction = templates[f"ptsd_w-reasoning_w-subscales_w-questions_phase-{phase}"]
         instruction_with_text = instruction.format(text=input_text)
         input_prompt = [
             # {"role": "system", "content": "You are a helpful assistant."},
