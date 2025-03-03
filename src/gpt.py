@@ -19,7 +19,7 @@ from cryptography.hazmat.backends import default_backend
 import re
 
 openai_api_key = "EMPTY"
-openai_api_base = f"http://localhost:8000/v1"
+openai_api_base = f"http://localhost:8001/v1"
 
 client = OpenAI(
     api_key=openai_api_key,
@@ -229,8 +229,8 @@ class OpenAICommunicator:
             pickle.dump(data, f)
 
         print(f"Encrypted and saved tokenized data for {video_id}")
-        """with open(self.cache_path, 'wb') as handle:
+        with open(self.cache_path, 'wb') as handle:
             pickle.dump(self.cached_responses, handle)
-        time.sleep(5)"""
+        time.sleep(3)
 
         return response_text

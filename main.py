@@ -143,7 +143,7 @@ if __name__ == "__main__":
             continue
         
         phase = str(video_id.split("_")[-1])
-        instruction = templates[f"ptsd_w-reasoning_w-subscales_w-questions_phase-{phase}"]
+        instruction = templates[f"ptsd_wo-reasoning_wo-subscales_w-questions_phase-{phase}"]
         instruction_with_text = instruction.format(text=input_text)
         input_prompt = [
             # {"role": "system", "content": "You are a helpful assistant."},
