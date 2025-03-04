@@ -784,9 +784,42 @@ Here’s the abstracted format of the JSON, with elements inside angle brackets 
 Text: '{text}'
 """,
 
+"ptsd_wo-reasoning_wo-subscales_wo-questions":"""Your task is to conduct an in-depth analysis of a provided transcript, with the goal of assessing the severity of PTSD symptoms based on its 4 subscales. The text you will analyze is the transcription of the patient’s self-recorded answers to a set of 15 questions, which were designed to assess various aspects of psychological well-being, including PTSD-related symptoms. 
+Using the content of these transcriptions, you will predict a severity score for the following four PTSD subscales:
+Re-experiencing, Avoidance, Dysphoria, Hyperarousal.
+
+Scoring System
+Assign a severity score for each subscale based on the intensity and impact of the symptoms described in the text:
+0 (Not at all severe): The symptom is not present or negligible.
+1 (Low severity): The symptom is present but slightly impacts the individual.
+2 (Moderate severity): The symptom is noticeably present and moderately impacts the individual.
+3 (High severity): The symptom is significantly present and strongly impacts the individual.
+4 (Extreme severity): The symptom is overwhelmingly present and has a profound impact on the individual.
+
+Steps
+The text should be carefully analyzed, and the following steps should be strictly followed:
+STEP 1: Detect the PTSD subfactors in the text and provide a score between 0 and 4 for each subfactor.
+
+To ensure clarity and easy readability, format your output into a nested JSON. Each value should be a JSON containing each subfactor (Re-experiencing, Avoidance, Dysphoria, Hyperarousal) as keys. For each subfactor, include:
+Severity Score: The assigned severity score for the subfactor, ranging from 0 (not at all severe) to 4 (extreme severity).
+Here’s the abstracted format of the JSON:
+ {{
+    "Re-experiencing": {{
+      "Severity Score": 
+    }},
+    "Avoidance": {{
+      "Severity Score": 
+    }},
+    "Dysphoria": {{
+      "Severity Score": 
+    }},
+    "Hyperarousal": {{
+      "Severity Score": 
+    }}
+  }}
+
+Text: '{text}'
+""",
+
 
 }
-
-"""
-python3 main.py --expt_name ptsd_w-reasoning_wo-subscales_w-questions --save_folder_path ./out/ --deepseek --openai_model_name DeepSeek-R1-Distill-Llama-70B-hf --model_path /home/pkaliosis1/pretrained/DeepSeek-R1-Distill-Llama-70B-hf --max_tokens 3500 --output_pickle_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/expts/responses/llama70_w_reasoning_wo_defs_w_questions.pkl --cache_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/cache/llama70_cache_w_reas_wo_defs_w_questions.pkl --output_pickle_scores_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/expts/responses/llama70_w_reasoning_wo_defs_w_questions_scores.pkl --port 8000 --temperature 0.0
-"""
