@@ -17,9 +17,11 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import re
-
+"""
+python3 main.py --expt_name ptsd_w-reasoning_w-subscales_wo-questions --save_folder_path ./out/ --deepseek --openai_model_name DeepSeek-R1-Distill-Llama-70B-hf --model_path /home/pkaliosis1/pretrained/DeepSeek-R1-Distill-Llama-70B-hf --max_tokens 3500 --output_pickle_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/expts/responses/llama70_w_reasoning_w_defs_wo_questions_temp06_r3.pkl --cache_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/cache/llama70_cache_w_reas_w_defs_wo_questions_temp06_r3.pkl --output_pickle_scores_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/expts/responses/llama70_w_reasoning_w_defs_wo_questions_scores_temp06_r3.pkl --port 8000 --temperature 0.6
+"""
 openai_api_key = "EMPTY"
-openai_api_base = f"http://localhost:8001/v1"
+openai_api_base = f"http://localhost:5555/v1"
 
 client = OpenAI(
     api_key=openai_api_key,
@@ -45,6 +47,7 @@ class OpenAICommunicator:
         self.PICKLE_NAME = options["output_pickle_path"]
         self.PICKLE_NAME_SCORES = options["output_pickle_scores_path"]
         self.port = options["port"]
+        self.model_path = options["model_path"]
         self.tokenizer = tokenizer
         self.cached_responses = self.load_cache_if_exists()
         
@@ -86,8 +89,38 @@ class OpenAICommunicator:
                     "frequency_penalty":self.frequency_penalty,
                     "presence_penalty":self.presence_penalty
                 }
+                print(self.model_path)
+                response = client.chat.completions.create(model=self.model_path,
+                                                            messages=prompt,
+                                                            temperature=self.temp,
+                                                            max_tokens=self.max_tokens,
+                                                            top_p=self.top_p,
+                                                            frequency_penalty=self.frequency_penalty,
+                                                            presence_penalty=self.presence_penalty
+                                                        )
 
-                response = client.chat.completions.create(model=f"/home/pkaliosis1/pretrained/{self.model_name}",
+                # Send request to vLLM API
+                #response = requests.post("http://localhost:8000/v1/chat/completions", headers=headers, json=data)
+                
+                
+                resp = response.choices[0].message.content
+                if len(resp) > 0:
+                    return resp, response
+                else:
+                    print(f"Error for {video_id}: {response.text}")
+            elif ("Llama" in self.model_name):
+                # Prepare API request payload
+                payload = {
+                    "prompt": prompt,
+                    "temperature": self.temp,  # Adjust as needed
+                    "max_tokens":self.max_tokens,
+                    "top_p":self.top_p,
+                    "frequency_penalty":self.frequency_penalty,
+                    "presence_penalty":self.presence_penalty
+                }
+
+
+                response = client.chat.completions.create(model=self.model_path,
                                                             messages=prompt,
                                                             temperature=self.temp,
                                                             max_tokens=self.max_tokens,

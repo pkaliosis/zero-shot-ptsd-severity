@@ -82,8 +82,10 @@ if __name__ == "__main__":
     args_dict["encryption_key"] = encryption_key
     args_dict["encryption_salt"] = encryption_salt
     args_dict["out_pickle_path"] = "./out/{}.csv".format(expt_metainfo)
+    args_dict["model_path"] = args.model_path
 
-    tokenizer_path = "/home/pkaliosis1/pretrained/DeepSeek-R1-Distill-Llama-70B-hf"
+    #tokenizer_path = "/home/pkaliosis1/pretrained/DeepSeek-R1-Distill-Llama-70B-hf"
+    tokenizer_path = "/home/pkaliosis1/pretrained/Llama-3.3-70B-Instruct/snapshots/snapshots"
     print("Tokenizer path:", args.model_path)
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         
@@ -143,7 +145,7 @@ if __name__ == "__main__":
             continue
         
         phase = str(video_id.split("_")[-1])
-        instruction = templates[f"ptsd_wo-reasoning_wo-subscales_w-questions_phase-{phase}"]
+        instruction = templates[f"ptsd_wo-reasoning_wo-subscales_wo-questions"]
         instruction_with_text = instruction.format(text=input_text)
         input_prompt = [
             # {"role": "system", "content": "You are a helpful assistant."},
@@ -152,14 +154,12 @@ if __name__ == "__main__":
         query_start_time = time.time()
         response_text = openai_communicator.run_inference(input_prompt, video_id)
         query_response_time.append(time.time() - query_start_time)
-        """output_json = {'user_id': row_id, 'input_text': input_prompt, 'target_value': target_value, 'response_text': response_text, 'user_text': input_text.strip()}
-        output_list.append(output_json)"""
     end_time = time.time()
     
     total_time = round(end_time - start_time, 2)
     avg_response_time = round(sum(query_response_time)/len(query_response_time), 2)
-    logging.info("Total time taken for inference of {} rows: {}".format(len(output_json), total_time))
-    logging.info("Average time taken for inference of {} rows: {}".format(len(output_json), avg_response_time))
+    logging.info("Total time taken for inference: {}".format(total_time))
+    logging.info("Average time taken for inference of: {}".format(avg_response_time))
     
     """output_df = pd.DataFrame(output_list)
     output_df.to_csv(responses_file_path, index=False)
