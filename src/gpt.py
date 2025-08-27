@@ -17,16 +17,33 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import re
+from vllm import LLM
+from vllm import SamplingParams
+from openai import AzureOpenAI
+from dotenv import load_dotenv
+
+from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMessage, UserMessage
+from azure.core.credentials import AzureKeyCredential
+from azure.core.exceptions import HttpResponseError
+
+
+
+#os.environ["CUDA_VISIBLE_DEVICES"] = ""
 """
 python3 main.py --expt_name ptsd_w-reasoning_w-subscales_wo-questions --save_folder_path ./out/ --deepseek --openai_model_name DeepSeek-R1-Distill-Llama-70B-hf --model_path /home/pkaliosis1/pretrained/DeepSeek-R1-Distill-Llama-70B-hf --max_tokens 3500 --output_pickle_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/expts/responses/llama70_w_reasoning_w_defs_wo_questions_temp06_r3.pkl --cache_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/cache/llama70_cache_w_reas_w_defs_wo_questions_temp06_r3.pkl --output_pickle_scores_path /home/pkaliosis1/deepseek-ptsd/gpt4-depression-schema/out/expts/responses/llama70_w_reasoning_w_defs_wo_questions_scores_temp06_r3.pkl --port 8000 --temperature 0.6
 """
 openai_api_key = "EMPTY"
-openai_api_base = f"http://localhost:5555/v1"
+openai_api_base = f"http://localhost:8001/v1"
+
 
 client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
 )
+
+load_dotenv()
+
 
 class OpenAICommunicator:
 
@@ -50,6 +67,13 @@ class OpenAICommunicator:
         self.model_path = options["model_path"]
         self.tokenizer = tokenizer
         self.cached_responses = self.load_cache_if_exists()
+        self.client = AzureOpenAI(
+            api_version="2024-12-01-preview",
+            azure_endpoint="https://azopenai-psyc-wtcwellness.openai.azure.com/",
+            api_key=os.getenv("AZURE_API_KEY"),
+        )
+        
+
         
 
     def load_cache_if_exists(self):
@@ -67,18 +91,103 @@ class OpenAICommunicator:
         with open(self.cache_path, 'wb') as handle:
             pickle.dump(self.cached_responses, handle)
 
-    def make_openai_api_call(self, prompt, video_id):
-
+    def make_openai_api_call(self, prompt, video_id, llm=None):
+        batched = False
         try:
-            if self.model_name in ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-1106-preview', 'gpt-4-0613']:
-                response = client.chat.completions.create(model=self.model_name,
-                messages=prompt,
-                temperature=self.temp,
-                max_tokens=self.max_tokens,
-                top_p=self.top_p,
-                frequency_penalty=self.frequency_penalty,
-                presence_penalty=self.presence_penalty)
-                return self.parse_chatgpt_api_response(response)
+            if self.model_name in ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-1106-preview', 'gpt-4-0613', 'o3-mini', 'gpt-4o-mini', 'gpt-5']:
+
+                
+                #deployment = "o3-mini"
+                deployment = "gpt-5"
+
+                print("Calling GPT-5...")
+
+                response = self.client.chat.completions.create(
+                    messages=prompt,
+                    max_completion_tokens=10000,
+                    model=deployment,
+                    #reasoning_effort="high"
+                )
+
+                #print("Usage o3-mini:", response.usage)
+
+                #return self.parse_chatgpt_api_response(response)
+                return response.choices[0].message.content, response.choices[0].message
+                
+            elif self.model_name in ["gpt-oss"]:
+                client = OpenAI(
+                    base_url="http://localhost:8000/v1",
+                    api_key="EMPTY"
+                )
+
+                response = client.chat.completions.create(
+                    model="openai/gpt-oss-120b",
+                    messages=prompt,
+                    max_completion_tokens=10000,
+                )
+
+                print("gpt-oss response:", response.choices[0].message.content)
+
+                return response.choices[0].message.content, response.choices[0].message
+
+            elif self.model_name in ["Meta-Llama-3.1-405B-Instruct"]:
+                endpoint = "https://pkali-m91n263l-eastus2.services.ai.azure.com/models"
+                model_name = "Meta-Llama-3.1-405B-Instruct"
+
+                client = ChatCompletionsClient(
+                    endpoint=endpoint,
+                    credential=AzureKeyCredential(os.getenv("AZURE_AI_API_KEY")),
+                    api_version="2024-05-01-preview"
+                )
+                """response = client.complete(
+                    messages=[
+                        UserMessage(content=prompt)
+                    ],
+                    max_tokens=10000,
+                    temperature=0.0,
+                    model=model_name
+                )"""
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        # Your call to the ChatCompletionsClient
+                        response = client.complete(
+                            messages=[
+                                UserMessage(content=prompt)
+                            ],
+                            max_tokens=20000,
+                            temperature=0.0,
+                            model=model_name
+                        )
+                        break  # Break if successful
+                    except HttpResponseError as e:
+                        print(f"Attempt {attempt+1} failed with error: {e}")
+                        time.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    print("Failed after several retries.")
+                print("Llama405b Usage:", response.usage)
+                return response.choices[0].message.content, response.choices[0].message
+            
+            elif self.model_name in ["DeepSeek-R1"]:
+                endpoint = "https://pkali-m91n263l-eastus2.services.ai.azure.com/models"
+                model_name = "DeepSeek-R1"
+
+                client = ChatCompletionsClient(
+                    endpoint=endpoint,
+                    credential=AzureKeyCredential(os.getenv("AZURE_AI_API_KEY")),
+                )
+                response = client.complete(
+                    messages=[
+                        UserMessage(content=prompt)
+                    ],
+                    max_tokens=10000,
+                    temperature=0.0,
+                    model=model_name
+                )
+                print("DeepSeek-r1 Usage:", response.usage)
+                return response.choices[0].message.content, response.choices[0].message
+
+
             elif "DeepSeek" in self.model_name:
                 # Prepare API request payload
                 payload = {
@@ -90,7 +199,23 @@ class OpenAICommunicator:
                     "presence_penalty":self.presence_penalty
                 }
                 print(self.model_path)
-                response = client.chat.completions.create(model=self.model_path,
+                """response = client.chat.completions.create(model=self.model_path,
+                                                            messages=prompt,
+                                                            temperature=self.temp,
+                                                            max_tokens=self.max_tokens,
+                                                            top_p=self.top_p,
+                                                            frequency_penalty=self.frequency_penalty,
+                                                            presence_penalty=self.presence_penalty
+                                                        )"""
+                client = OpenAI(
+                        api_key=openai_api_key,
+                        base_url=openai_api_base,
+                    )
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        # Your call to the ChatCompletionsClient
+                        response = client.chat.completions.create(model=self.model_path,
                                                             messages=prompt,
                                                             temperature=self.temp,
                                                             max_tokens=self.max_tokens,
@@ -98,46 +223,67 @@ class OpenAICommunicator:
                                                             frequency_penalty=self.frequency_penalty,
                                                             presence_penalty=self.presence_penalty
                                                         )
+                        break  # Break if successful
+                    except Exception as e:
+                        print(f"Attempt {attempt+1} failed with error: {e}")
+                        time.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    print("Failed after several retries.")
 
                 # Send request to vLLM API
                 #response = requests.post("http://localhost:8000/v1/chat/completions", headers=headers, json=data)
                 
                 
                 resp = response.choices[0].message.content
+                print("resp:", resp)
                 if len(resp) > 0:
                     return resp, response
                 else:
-                    print(f"Error for {video_id}: {response.text}")
+                    print(f"Error for {video_id}: {response}")
             elif ("Llama" in self.model_name):
-                # Prepare API request payload
-                payload = {
-                    "prompt": prompt,
-                    "temperature": self.temp,  # Adjust as needed
-                    "max_tokens":self.max_tokens,
-                    "top_p":self.top_p,
-                    "frequency_penalty":self.frequency_penalty,
-                    "presence_penalty":self.presence_penalty
-                }
+                print("the model name is:", self.model_name)
+                if "Instruct" in self.model_name:
+                    # Prepare API request payload
+                    payload = {
+                        "prompt": prompt,
+                        "temperature": self.temp,  # Adjust as needed
+                        "max_tokens":self.max_tokens,
+                        "top_p":self.top_p,
+                        "frequency_penalty":self.frequency_penalty,
+                        "presence_penalty":self.presence_penalty
+                    }
+
+                    client = OpenAI(
+                        api_key=openai_api_key,
+                        base_url=openai_api_base,
+                    )
 
 
-                response = client.chat.completions.create(model=self.model_path,
-                                                            messages=prompt,
-                                                            temperature=self.temp,
-                                                            max_tokens=self.max_tokens,
-                                                            top_p=self.top_p,
-                                                            frequency_penalty=self.frequency_penalty,
-                                                            presence_penalty=self.presence_penalty
-                                                        )
+                    response = client.chat.completions.create(model=self.model_path,
+                                                                messages=prompt,
+                                                                temperature=self.temp,
+                                                                max_tokens=3500,
+                                                                top_p=self.top_p,
+                                                                frequency_penalty=self.frequency_penalty,
+                                                                presence_penalty=self.presence_penalty
+                                                            )
 
-                # Send request to vLLM API
-                #response = requests.post("http://localhost:8000/v1/chat/completions", headers=headers, json=data)
-                
-                
-                resp = response.choices[0].message.content
-                if len(resp) > 0:
-                    return resp, response
+                    # Send request to vLLM API
+                    #response = requests.post("http://localhost:8000/v1/chat/completions", headers=headers, json=data)
+                    
+                    
+                    resp = response.choices[0].message.content
+                    print("resp:", resp)
+                    if len(resp) > 0:
+                        return resp, response
+                    else:
+                        print(f"Error for {video_id}: {response}")
                 else:
-                    print(f"Error for {video_id}: {response.text}")
+                    params = SamplingParams(temperature=0.0, max_tokens=50000)
+                    output = llm.generate(str(prompt[0]["content"]), params)
+                    out = output[0].outputs[0].text
+                    print("out:", out)
+                    return out, output
             else:
                 # gpt3 API call + response
                 response = client.completions.create(model=self.model_name,
@@ -206,27 +352,32 @@ class OpenAICommunicator:
 
         return scores
 
-    def run_inference(self, prompt, video_id):
+    def run_inference(self, prompt, video_id, llm=None):
 
         hashed_prompt = hashlib.sha256(str(prompt).encode("utf-8")).hexdigest()
         cache_key = (hashed_prompt, self.model_name, self.max_tokens, self.temp, self.top_p, self.frequency_penalty, self.presence_penalty)
         if cache_key in self.cached_responses:
             print(f"Using cached response")
             response_text = self.cached_responses[cache_key]['text']
+            print(response_text)
         else:
             # print(f"Running {self.model_name}")
-            response_text, response = self.make_openai_api_call(prompt, video_id)
+            print("making openai api call")
+            response_text, response = self.make_openai_api_call(prompt, video_id, llm)
+
+            #print("response text:", response_text)
             self.cached_responses[cache_key] = {'text': response_text, 'object': response}
 
-        print(type(response_text))
+        #print("resp:", response)
 
-        scores = self.parse_ptsd_output_as_string(response_text)
-        print("Scores:", scores)
+        #scores = self.parse_ptsd_output_as_string(response_text)
+        scores = [1,1,1,1]
+        #print("Scores:", scores)
 
         overall_score = (scores[0] + 1) * 5 + (scores[1] + 1) * 2 + (scores[2] + 1) * 8 + (scores[3] + 1) * 2
-        print("Overall score:", overall_score)
+        #print("Overall score:", overall_score)
 
-        tokenized_ids = self.tokenizer(response_text, return_tensors='pt')  # Adjust based on vLLM API response format
+        tokenized_ids = self.tokenizer.encode(response_text, return_tensors='pt')  # Adjust based on vLLM API response format
 
         serialized_data = pickle.dumps({video_id: [tokenized_ids]})
         nonce = os.urandom(12)  # Generate a unique nonce for AES-GCM
@@ -252,11 +403,11 @@ class OpenAICommunicator:
                 data = pickle.load(f)
 
             # Add new key-value pair
-            data[video_id] = overall_score
+            #data[video_id] = overall_score
         
         else:
             data = dict()
-            data[video_id] = overall_score
+            #data[video_id] = overall_score
 
         with open(self.PICKLE_NAME_SCORES, "wb") as f:
             pickle.dump(data, f)

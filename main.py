@@ -15,6 +15,8 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import getpass
 from transformers import AutoTokenizer
+from vllm import LLM
+import tiktoken
 
 ### **Encryption Initialization Function**
 def initialize_encryption():
@@ -85,9 +87,11 @@ if __name__ == "__main__":
     args_dict["model_path"] = args.model_path
 
     #tokenizer_path = "/home/pkaliosis1/pretrained/DeepSeek-R1-Distill-Llama-70B-hf"
-    tokenizer_path = "/home/pkaliosis1/pretrained/Llama-3.3-70B-Instruct/snapshots/snapshots"
+    #tokenizer_path = "/home/avirinchipur1/pretrained/Llama-3.1-70B/snapshots/snapshots"
+    tokenizer_path = "/home/avirinchipur1/pretrained_models/meta-llama/Llama-3.1-8B-Instruct-hf"
     print("Tokenizer path:", args.model_path)
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+    #tokenizer = tiktoken.get_encoding("o200k_base")
         
     openai_communicator = OpenAICommunicator(args_dict, tokenizer)
     logging.info("OpenAI Communicator initialized")
@@ -134,25 +138,34 @@ if __name__ == "__main__":
     query_response_time = []
     start_time = time.time()
     output_list = []
+
+    ids = pd.read_csv("ids.csv")
+    if "DeepSeek" not in args.openai_model_name and "Llama" in args.openai_model_name and "Instruct" not in args.openai_model_name:
+        llm = LLM(model="meta-llama/Llama-3.1-8B", task="generate", tensor_parallel_size=1, max_model_len=6000)
+    else:
+        llm = None
     for idx in tqdm(range(len(video_ids)), desc="Running inference with {}".format(args.openai_model_name)):
         video_id, input_transcript = video_ids[idx], decrypted_token_ids[idx][0]
         if (len(input_transcript) == 0):
             continue
         
         input_text = tokenizer.decode(input_transcript, skip_special_tokens=True)
+        #print("input text:", input_text)
         if (len(input_text.split(" ")) < 150) or (len(input_text.split(" ")) > 3000):
             print("Skipping due to not enough words...")
             continue
+
         
         phase = str(video_id.split("_")[-1])
-        instruction = templates[f"ptsd_wo-reasoning_wo-subscales_wo-questions"]
+        instruction = templates[f"ptsd_wo-reasoning_w-subscales_wo-questions_fs_alt"]#[f"ptsd_wo-reasoning_wo-subscales_w-questions_phase-{phase}_fs_alt"]
         instruction_with_text = instruction.format(text=input_text)
+        print("len of instruction:", len(instruction_with_text))
         input_prompt = [
             # {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": instruction_with_text}
         ]
         query_start_time = time.time()
-        response_text = openai_communicator.run_inference(input_prompt, video_id)
+        response_text = openai_communicator.run_inference(input_prompt, video_id, llm)
         query_response_time.append(time.time() - query_start_time)
     end_time = time.time()
     
