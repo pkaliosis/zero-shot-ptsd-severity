@@ -1,62 +1,6 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
-from sklearn.metrics import mean_absolute_error
-
-"""
-def bootstrap_se(preds, true_, stat_func, B=1000):
-    n = len(preds)
-    rs, maes = [], []
-    for _ in range(B):
-        indices = np.random.choice(n, size=n, replace=True)
-        y_true_sample = true_.iloc[indices]
-        y_pred_sample = preds.iloc[indices]
-
-        pearson_r, _ = pearsonr(y_pred_sample, y_true_sample)
-        mae = mean_absolute_error(y_pred_sample, y_true_sample)
-        rs.append(pearson_r)
-        maes.append(mae)
-    return np.std(rs, ddof=1), np.std(maes, ddof=1)  # ddof=1 gives the unbiased estimate (sample std)
-
-# Example usage:
-#data = np.array([1.2, 3.5, 2.7, 4.1, 3.0])
-
-csv_file = "/home/pkaliosis/zero-shot/tr_pcl_ans.csv"  # Replace with your actual CSV filename
-df = pd.read_csv(csv_file)
-df["video_id"] = df["video_id"].astype(str)
-
-scores_file = "/home/pkaliosis/zero-shot/scores/correct_scores_deepseek-r1_wo_reasoning_w_defs_wo_questions.csv"
-df_scores = pd.read_csv(scores_file)
-
-keys = list(df_scores["video_id"])
-keys = [str(k).split("_")[0] for k in keys]
-values = list(df_scores["PTSD_Score"])
-
-processed_dict = {str(key).split("_")[0]: values[i] for i, key in enumerate(keys)}
-
-# Extract true and predicted values for PCL_SCORE
-df = df[df["video_id"].isin(keys)]  # Keep only relevant rows
-df["predicted_PCL_SCORE"] = df["video_id"].map(processed_dict)
-
-# Drop rows where prediction is missing (optional)
-df = df.dropna(subset=["PCL_SCORE", "predicted_PCL_SCORE"])
-
-# Convert columns to float to avoid errors
-df["PCL_SCORE"] = df["PCL_SCORE"].astype(float)
-df["predicted_PCL_SCORE"] = df["predicted_PCL_SCORE"].astype(float)
-
-df = df[df["predicted_PCL_SCORE"] != -34]
-
-true_scores = df["PCL_SCORE"]
-predicted_scores = df["predicted_PCL_SCORE"]
-
-se_r, se_mae = bootstrap_se(predicted_scores, true_scores, np.mean)
-print(f"Bootstrap SE of the r: {se_r:.4f}")
-print(f"Bootstrap SE of the mae: {se_mae:.4f}")
-"""
-
-import numpy as np
-from scipy.stats import pearsonr
 
 def bootstrap_difference(y_true, y_pred_A, y_pred_B, metric='pearson', B=1000, seed=10, redistribution=False):
     """
