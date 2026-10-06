@@ -6153,5 +6153,82 @@ Analyze the following transcript.
 Text: '{text}'
 """,
 
+"ptsd_direct_w_subscales_and_evidence_and_phq9": """Your task is to conduct an in-depth analysis of a provided transcript, with the goal of estimating the overall severity of post-traumatic stress disorder (PTSD) symptoms experienced by the individual.
+
+The text you will analyze is a transcription of the patient's spoken answers to a predefined set of self-recorded questions. These questions were designed to assess various aspects of psychological well-being, particularly symptoms associated with PTSD. The goal is to assess the overall PTSD severity.
+
+Scoring Objective
+Based on the content of the transcript, predict a single scalar PTSD severity score in the range 17 to 85, where:
+
+- 17 represents minimal or no PTSD-related symptoms.
+- 85 represents extreme PTSD symptom severity across multiple domains of functioning.
+
+This score should directly estimate the patient’s PCL score, a widely used self-report measure of PTSD symptom severity. The PCL score is calculated based on self-reported answers to questions revolving around 4 subscales:
+Re-experiencing: Intrusive thoughts, flashbacks, nightmares, or distress when reminded of the trauma.
+Avoidance: Efforts to avoid thoughts, feelings, or external reminders associated with the trauma.
+Dysphoria: Persistent negative thoughts, feelings of guilt, emotional numbness, or loss of interest in activities.
+Hyperarousal: Increased irritability, hypervigilance, being easily startled, or difficulty concentrating and sleeping.
+
+Moreover, the second task is to predict speaker's depression severity (it includes symptoms of low interest or pleasure, depression or hopelessness, insomnia or hypersomnia, fatigue or low energy, poor appetite or overeating, feelings of guilt trouble concentrating, moving/speaking slowly or agitation, and thoughts of death or suicide) rated between 0 and 27, where 0 is no symptoms and 27 is extreme symptoms.
+
+Instructions
+Carefully analyze the transcript, considering the emotional tone, content, and any references to trauma-related symptoms or functional impairments. Then assign a single integer score between 17 and 85 that best reflects the overall PTSD severity of the individual. Then assign a single integer between 0 and 27, where 0 is no symptoms and 27 is extreme symptoms, that best reflects the depression severity of the individual.
+
+Every field that has a numeric estimate must include a confidence in [0,1,2,3].
+
+Do not add or omit keys. If uncertain, still output a numeric estimate and a lower confidence.
+
+Provide evidence. Evidence should be a short phrase citing the transcript that led you into your prediction.
+
+
+Output Format
+
+Return your answer in the following structured JSON format:
+
+{{
+'PTSD_Score': {{
+      "score": ,
+      "confidence": ,
+      "evidence":
+  }},
+  "Depression": {{
+      "score": ,
+      "confidence": ,
+      "evidence":
+  }},
+}}
+
+
+Text: {text}
+
+""",
+
+"ptsd_direct_w_911": """Your task is to conduct an in-depth analysis of a provided transcript, with the goal of estimating the overall severity of post-traumatic stress disorder (PTSD) symptoms experienced by the individual.
+
+The text you will analyze is a transcription of the patient's spoken answers to a predefined set of self-recorded questions. The patients are questioned about their lives after the World Trade Center disaster that happened on 9/11. These questions were designed to assess various aspects of psychological well-being, particularly symptoms associated with PTSD. The goal is to assess the overall PTSD severity related to World Trade Center disaster.
+
+Scoring Objective
+Based on the content of the transcript, predict a single scalar PTSD severity score in the range 17 to 85, where:
+
+- 17 represents minimal or no PTSD-related symptoms.
+- 85 represents extreme PTSD symptom severity across multiple domains of functioning.
+
+This score should directly estimate the patient’s PCL score, a widely used self-report measure of PTSD symptom severity.
+
+Instructions
+Carefully analyze the transcript, considering the emotional tone, content, and any references to trauma-related symptoms or functional impairments. Then assign a single integer score between 17 and 85 that best reflects the overall PTSD severity of the individual related to World Trade Center disaster.
+
+Output Format
+
+Return your answer in the following structured JSON format:
+
+{{
+'PTSD_Score':
+}}
+
+Text: {text}
+
+""",
+
 }
 
